@@ -51,6 +51,9 @@ res.ψ   # rotated orbitals
 - [ ] k-points
 - [ ] Switch from the development branches to released versions of DFTK.jl and PsiTK.jl
 
-## Contributing
+## Contributing and Support
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), including a short overview of the code design.
+We welcome contributions from the scientific community! 
+
+- If you encounter a bug, have a feature request, or need help, please open an [issue](https://github.com/toschaefer/PsiTK.jl/issues).
+- If you'd like to contribute code, please submit a Pull Request. We recommend opening an issue first to discuss your planned changes. [CONTRIBUTING.md](CONTRIBUTING.md) explains the code design and how to extend it.
