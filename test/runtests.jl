@@ -1,17 +1,22 @@
-using Test
-using Aqua
-using OrbitalRotationsTK
+using TestItemRunner
 
-@testset "OrbitalRotationsTK.jl" begin
-    @testset "Code quality (Aqua)" begin
-        Aqua.test_all(OrbitalRotationsTK)   # unbound args, stale deps, missing compat, ambiguities, ...
-    end
+# Select test items by tag: `Pkg.test(test_args=["one_body"])` runs only items tagged
+# :one_body, "noaqua" skips items tagged :aqua, and "all" also runs the :slow items, which are
+# skipped by default. Arguments can also be passed as ORBITALROTATIONSTK_TEST_ARGS="a-b-c".
+args = isempty(ARGS) ?
+    split(get(ENV, "ORBITALROTATIONSTK_TEST_ARGS", ""), "-"; keepempty=false) : ARGS
+included = [Symbol(arg) for arg in args if arg != "all" && !startswith(arg, "no")]
+excluded = [Symbol(arg[3:end]) for arg in args if startswith(arg, "no")]
+# :slow items run on request only: via "all", or when tags are selected explicitly
+("all" in args || !isempty(included)) || push!(excluded, :slow)
 
-    @testset "One-body weights" begin
-        weights = OrbitalRotationsTK.weights
-        @test weights(NPL(), 3) == [1.0, 1.0, 1.0]
-        @test weights(NPL(w=[1.0, 0.0, 2.0]), 3) == [1.0, 0.0, 2.0]
-        @test weights(NPL(w=[1, 0, 2]), 3) isa Vector{Float64}
-        @test_throws DimensionMismatch weights(NPL(w=[1.0, 0.0]), 3)
-    end
+function testfilter(ti)
+    any(in(ti.tags), excluded) && return false
+    return isempty(included) || any(in(ti.tags), included)
 end
+
+println("Running OrbitalRotationsTK tests")
+isempty(included) || println("    Included tags: ", join(included, ", "))
+isempty(excluded) || println("    Excluded tags: ", join(excluded, ", "))
+
+@run_package_tests filter=testfilter verbose=true
