@@ -50,3 +50,7 @@ res.ψ   # rotated orbitals
 - [ ] More functionals: Foster–Boys, Pipek–Mezey, Edmiston–Ruedenberg, intrinsic bond orbitals
 - [ ] k-points
 - [ ] Switch from the development branches to released versions of DFTK.jl and PsiTK.jl
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), including a short overview of the code design.
