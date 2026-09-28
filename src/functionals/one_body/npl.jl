@@ -6,7 +6,9 @@ The Nuclear Potential Localization (NPL) functional
     L(U) = Σ_F w_F Σ_i h(⟨ϕ_i|σ_F|ϕ_i⟩),    ϕ_i = Σ_j U_ji ψ_j
 
 The one-body operators σ_F are the local (attractive) pseudopotentials of the atoms F,
-hence ⟨ϕ_i|σ_F|ϕ_i⟩ < 0 and `h` must be defined for negative arguments.
+hence ⟨ϕ_i|σ_F|ϕ_i⟩ < 0 and `h` must be defined for negative arguments. The expectation
+values are energies in Hartree, so with `Monomial(p)` the loss has units of Hartreeᵖ
+(times the units of `w`), which sets the scale of `tol` in [`rotate`](@ref).
 
 The weights `w` are either one number for all atoms or a vector with one weight per atom, in
 the order of `basis.model.atoms`. A weight of zero excludes the atom from the functional.

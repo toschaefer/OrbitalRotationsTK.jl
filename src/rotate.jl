@@ -23,13 +23,17 @@ Currently Γ-point only.
 - `ψk`: orthonormal orbitals of `basis` at the Γ point, one per column.
 - `representation`: how the loss and its gradient are evaluated.
 - `U0`: initial unitary; the identity if `nothing`.
-- `tol`: convergence threshold for the largest derivative of the loss with respect to a
-  rotation of a pair of orbitals. Being a maximum rather than a norm, it does not grow with
-  the number of orbitals.
+- `tol`: convergence threshold for the largest element |G_pq| of the Riemannian gradient
+  G = ΓU† − UΓ† of the loss, Γ_pq = ∂L/∂conj(U_pq), in units of the loss. G_pq is
+  proportional to the derivative of the loss with respect to the angle of a rotation of
+  the orbital pair (p,q), so the criterion does not grow with the number of orbitals. The
+  units of the loss are given in the docstring of each functional.
 - `maxiter`: maximum number of rotations of `U`.
-- `callback`: called once per iteration with the optimizer state, a named tuple with the
-  fields `iteration`, `loss`, `max_gradient` and `U`; returning `true` stops the
-  optimization. `Lucon.PrintTrace()` prints a convergence trace.
+- `callback`: called once per iteration with the state of the optimizer; returning `true`
+  stops the optimization.
+
+The optimization is done by `Lucon.optimize`; see its documentation for the algorithm, the
+state passed to the callback, and ready-made callbacks such as a convergence trace.
 """
 function rotate(
     basis,
