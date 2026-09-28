@@ -18,7 +18,8 @@ end
 
 
 function one_body_operators(::NPL, basis, ::FourierSpace, Gs)
-    # code here
+    # - N_G × N_F matrix of the atomic pseudopotentials σ_F(G) at the G vectors Gs:
+    #   reduce(hcat, atom_local_potentials_fourier(basis, Gs))
 end
 
 

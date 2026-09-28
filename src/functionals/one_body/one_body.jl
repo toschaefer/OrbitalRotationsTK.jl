@@ -54,12 +54,23 @@ function prepare_gradient(
     functional::OneBodyFunctional,
     representation::OrbitalSubspace,
     basis,
-    ψ
+    ψk
 )
-    # code here
+    # - ρ_ij(G), Gs: overlap densities of ψk up to representation.Ecut_ratio (from PsiTK,
+    #   which needs a (basis, ψk) entry point)
+    # - V = one_body_operators(functional, basis, FourierSpace(), Gs)      # N_G × N_F
+    # - σ[F,i,j] = Σ_G conj(V[G,F]) ρ_ij(G); exact with DFTK's FFT normalization, no dvol
+    # - w = weights(functional, size(V, 2))
+    # - return OneBodyOrbitalSubspaceCache(functional.h, w, σ, similar(σ),
+    #       similar(σ, N_F, N))
 end
 
 
 function gradient(prep::OneBodyOrbitalSubspaceCache, U, calc_loss)
-    # code here
+    # - rotate the ket index into prep.σ_rotated: B[F,p,q] = Σ_j σ[F,p,j] U[j,q] (one gemm)
+    # - diagonal into prep.buffer_Fj:  d[F,q] = Σ_p conj(U[p,q]) B[F,p,q] = ⟨ϕ_q|σ_F|ϕ_q⟩
+    #   (real, since σ_F is Hermitian)
+    # - Γ[p,q] = Σ_F w_F h′(d[F,q]) B[F,p,q]
+    # - L = Σ_F w_F Σ_q h(d[F,q]) if calc_loss, else missing
+    # - return (Γ, L)
 end
