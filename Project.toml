@@ -11,7 +11,7 @@ PsiTK = "d89be4ce-3048-45c0-87f5-cd5ed04aaed3"
 
 [sources]
 DFTK = {rev = "exxk", url = "https://github.com/toschaefer/DFTK.jl"}
-PsiTK = {rev = "fullgrid_overlaps", url = "https://github.com/toschaefer/PsiTK.jl"}
+PsiTK = {rev = "main", url = "https://github.com/toschaefer/PsiTK.jl"}
 
 [compat]
 Aqua = "0.8.18"

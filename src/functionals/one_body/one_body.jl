@@ -63,6 +63,13 @@ function prepare_gradient(
     # - w = weights(functional, size(V, 2))
     # - return OneBodyOrbitalSubspaceCache(functional.h, w, σ, similar(σ),
     #       similar(σ, N_F, N))
+    
+    ρmnG, Gs = PsiTK.compute_overlap_densities(
+        basis,
+        ψk; 
+        callback = PsiTK.ShowProgress(desc="compute overlap densities"),
+        Ecut_ratio = 4.0
+    )
 end
 
 

@@ -45,15 +45,16 @@ function rotate(
     maxiter=1000,
     callback=nothing,
 )
-    length(basis.kpoints) == 1 && iszero(basis.kpoints[1].coordinate) ||
+    # consistency checks
+    length(basis.kpoints) == 1 && iszero(basis.kpoints[1].coordinate) || 
         throw(ArgumentError("currently Γ-only!"))
     N = size(ψk, 2)
     U = @something U0 Matrix{eltype(ψk)}(I, N, N)
     size(U) == (N, N) || throw(DimensionMismatch("U0 must be $N×$N, got $(size(U))"))
     U'U ≈ I || throw(ArgumentError("U0 must be unitary"))
 
+    # prepare and optimize
     prep = prepare_gradient(functional, representation, basis, ψk)
-
     res = Lucon.optimize(
         (U, calc_loss) -> gradient(prep, U, calc_loss),
         U;
@@ -63,6 +64,5 @@ function rotate(
         max_iter=maxiter,
         callback,
     )
-
     return RotationResult(ψk * res.U, res, functional, representation)
 end
