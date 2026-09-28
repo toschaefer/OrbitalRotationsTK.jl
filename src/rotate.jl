@@ -12,7 +12,8 @@ end
 
 
 """
-    rotate(basis, ψk, functional; representation=OrbitalSubspace(), U0=nothing, kwargs...)
+    rotate(basis, ψk, functional; representation=OrbitalSubspace(), U0=nothing,
+           tol=1e-6, maxiter=1000, callback=nothing)
 
 Find the unitary `U` that optimizes the `functional` for the rotated orbitals
 ϕ_i = Σ_j U_ji ψ_j, i.e. `ψk * U`, and return a [`RotationResult`](@ref).
@@ -22,9 +23,13 @@ Currently Γ-point only.
 - `ψk`: orthonormal orbitals of `basis` at the Γ point, one per column.
 - `representation`: how the loss and its gradient are evaluated.
 - `U0`: initial unitary; the identity if `nothing`.
-
-All other keyword arguments, e.g. for convergence control or a callback, are passed to
-`Lucon.optimize`; see its docstring.
+- `tol`: convergence threshold for the largest derivative of the loss with respect to a
+  rotation of a pair of orbitals. Being a maximum rather than a norm, it does not grow with
+  the number of orbitals.
+- `maxiter`: maximum number of rotations of `U`.
+- `callback`: called once per iteration with the optimizer state, a named tuple with the
+  fields `iteration`, `loss`, `max_gradient` and `U`; returning `true` stops the
+  optimization. `Lucon.PrintTrace()` prints a convergence trace.
 """
 function rotate(
     basis,
@@ -32,7 +37,9 @@ function rotate(
     functional;
     representation=OrbitalSubspace(),
     U0=nothing,
-    kwargs...,
+    tol=1e-6,
+    maxiter=1000,
+    callback=nothing,
 )
     length(basis.kpoints) == 1 && iszero(basis.kpoints[1].coordinate) ||
         throw(ArgumentError("currently Γ-only!"))
@@ -43,13 +50,14 @@ function rotate(
 
     prep = prepare_gradient(functional, representation, basis, ψk)
 
-    # kwargs first: the functional fixes the Taylor degree and the direction
     res = Lucon.optimize(
         (U, calc_loss) -> gradient(prep, U, calc_loss),
         U;
-        kwargs...,
         max_taylor_degree=max_taylor_degree(functional),
         maximize=maximize(functional),
+        max_gradient_tolerance=tol,
+        max_iter=maxiter,
+        callback,
     )
 
     return RotationResult(ψk * res.U, res, functional, representation)
