@@ -1,8 +1,9 @@
 using TestItemRunner
 
-# Select test items by tag: `Pkg.test(test_args=["one_body"])` runs only items tagged
-# :one_body, "noaqua" skips items tagged :aqua, and "all" also runs the :slow items, which are
-# skipped by default. Arguments can also be passed as ORBITALROTATIONSTK_TEST_ARGS="a-b-c".
+# Select test items by tag: `Pkg.test(test_args=["joint_diagonalization"])` runs only items
+# tagged :joint_diagonalization, "noaqua" skips items tagged :aqua, and "all" also runs the
+# :slow items, which are skipped by default. Arguments can also be passed as
+# ORBITALROTATIONSTK_TEST_ARGS="a-b-c".
 args = isempty(ARGS) ?
     split(get(ENV, "ORBITALROTATIONSTK_TEST_ARGS", ""), "-"; keepempty=false) : ARGS
 included = [Symbol(arg) for arg in args if arg != "all" && !startswith(arg, "no")]

@@ -19,12 +19,12 @@ public prepare_gradient
 public gradient
 include("common/representations.jl")
 
-public OneBodyFunctional
+public JointDiagonalizationFunctional
 public one_body_operators
-include("functionals/one_body/one_body.jl")
+include("functionals/joint_diagonalization/joint_diagonalization.jl")
 
 export NPL
-include("functionals/one_body/npl.jl")
+include("functionals/joint_diagonalization/npl.jl")
 
 export RotationResult
 export rotate

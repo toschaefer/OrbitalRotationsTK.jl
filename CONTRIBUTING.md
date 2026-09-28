@@ -25,7 +25,7 @@ the configuration as a dispatch argument. Some examples:
 | noun | role | lives in |
 |---|---|---|
 | functional, e.g. `NPL` | physics: *what* is optimized, i.e. the operators σ_F, weights `w` and scalar function `h` | `src/functionals/<family>/<name>.jl` |
-| family, e.g. `OneBodyFunctional` | physics: the common form of its functionals, and the numerics they share | `src/functionals/<family>/<family>.jl` |
+| family, e.g. `JointDiagonalizationFunctional` | physics: the common form of its functionals, and the numerics they share | `src/functionals/<family>/<family>.jl` |
 | representation, e.g. `OrbitalSubspace` | numerics: *how* the loss and its gradient are computed | `src/common/representations.jl` |
 | scalar function, e.g. `Monomial` | configuration: `h` with its derivative and Taylor degree | `src/common/scalar_functions.jl` |
 | `RotationResult` | data: the optimal unitary, the rotated orbitals, convergence information | `src/rotate.jl` |
@@ -47,7 +47,7 @@ Extending the code usually means adding one such noun and its methods, for insta
 
 - **a functional of an existing family:** a configuration struct with the fields `h` and
   `w`, plus `one_body_operators` methods for `FourierSpace` and `RealSpace`, in
-  `src/functionals/one_body/<name>.jl`;
+  `src/functionals/joint_diagonalization/<name>.jl`;
 - **a representation:** a configuration struct in `src/common/representations.jl`, plus
   `prepare_gradient` and `gradient` methods in each family that supports it;
 - **a family with a different form of the loss:** a folder in `src/functionals/` with an

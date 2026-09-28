@@ -13,7 +13,7 @@ values are energies in Hartree, so with `Monomial(p)` the loss has units of Hart
 The weights `w` are either one number for all atoms or a vector with one weight per atom, in
 the order of `basis.model.atoms`. A weight of zero excludes the atom from the functional.
 """
-@kwdef struct NPL{H,TW} <: OneBodyFunctional
+@kwdef struct NPL{H,TW} <: JointDiagonalizationFunctional
     h::H = Monomial(2)
     w::TW = 1.0
 end

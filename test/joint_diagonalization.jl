@@ -1,4 +1,4 @@
-@testitem "One-body weights" tags=[:one_body] begin
+@testitem "Joint diagonalization weights" tags=[:joint_diagonalization] begin
     weights = OrbitalRotationsTK.weights
     @test weights(NPL(), 3) == [1.0, 1.0, 1.0]
     @test weights(NPL(w=[1.0, 0.0, 2.0]), 3) == [1.0, 0.0, 2.0]
