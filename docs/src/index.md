@@ -8,8 +8,8 @@ the space they span is unchanged.
 using DFTK, OrbitalRotationsTK
 
 scfres = self_consistent_field(basis)
-ψk     = scfres.ψ[1][:, 1:4]                  # the orbitals to rotate
-res    = rotate(scfres.basis, ψk, NPL())
+ψ      = [ψk[:, 1:4] for ψk in scfres.ψ]      # the orbitals to rotate, per k-point
+res    = rotate(scfres.basis, ψ, NPL())
 ```
 
 All public functions and types are listed in the [Code reference](@ref).

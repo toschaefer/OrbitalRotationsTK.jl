@@ -36,10 +36,10 @@ Once the required changes are released in DFTK.jl and PsiTK.jl, a plain `Pkg.add
 using DFTK, OrbitalRotationsTK
 
 scfres = self_consistent_field(basis)
-ψk     = scfres.ψ[1][:, 1:4]                  # the orbitals to rotate
-res    = rotate(scfres.basis, ψk, NPL())
+ψ      = [ψk[:, 1:4] for ψk in scfres.ψ]      # the orbitals to rotate, per k-point
+res    = rotate(scfres.basis, ψ, NPL())
 
-res.ψk            # rotated orbitals
+res.ψ             # rotated orbitals
 res.optimizer.U   # optimal unitary
 ```
 

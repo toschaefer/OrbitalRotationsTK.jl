@@ -33,12 +33,12 @@ the configuration as a dispatch argument. Some examples:
 A typical call looks like this:
 
 ```julia
-ψk  = scfres.ψ[1][:, 1:4]                                    # DFTK enters here
-res = rotate(scfres.basis, ψk, NPL(w=[1.0, 0.5, 0.5]); representation=OrbitalSubspace())
+ψ   = [ψk[:, 1:4] for ψk in scfres.ψ]                        # DFTK enters here
+res = rotate(scfres.basis, ψ, NPL(w=[1.0, 0.5, 0.5]); representation=OrbitalSubspace())
 ```
 
 `rotate` illustrates the split between physics and numerics:
-`prepare_gradient(functional, representation, basis, ψk)` dispatches on the family of the
+`prepare_gradient(functional, representation, basis, ψ)` dispatches on the family of the
 functional and on the representation, and asks the functional only for its operators via
 `one_body_operators`; Lucon then calls `gradient(prep, U, calc_loss) -> (Γ, L)` in every
 step. Functionals and representations therefore combine freely.

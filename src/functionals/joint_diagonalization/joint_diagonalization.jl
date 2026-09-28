@@ -59,10 +59,9 @@ function prepare_gradient(
     functional::JointDiagonalizationFunctional,
     representation::OrbitalSubspace,
     basis,
-    ψk
+    ψ
 )
-    # - ρ_ij(G), Gs: overlap densities of ψk up to representation.Ecut_ratio (from PsiTK,
-    #   which needs a (basis, ψk) entry point)
+    # - ρ_ij(G), Gs: overlap densities of ψ up to representation.Ecut_ratio (from PsiTK)
     # - V = one_body_operators(functional, basis, FourierSpace(), Gs)      # N_G × N_F
     # - σ[F,i,j] = Σ_G conj(V[G,F]) ρ_ij(G); exact with DFTK's FFT normalization, no dvol
     # - w = weights(functional, size(V, 2))
@@ -71,7 +70,7 @@ function prepare_gradient(
     
     ρmnG, Gs = PsiTK.compute_overlap_densities(
         basis,
-        ψk; 
+        ψ;
         callback = PsiTK.ShowProgress(desc="compute overlap densities"),
         Ecut_ratio = 4.0
     )
