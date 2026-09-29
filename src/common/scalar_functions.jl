@@ -42,6 +42,10 @@ maximum. For any other `h` there is no exact value: too large a degree makes the
 narrow, so the maximum can lie outside it and the optimization stops early; too small a
 degree makes the window too wide and costs iterations. Use the degree of a polynomial that
 approximates `h` well over the relevant range; 2 is a reasonable start for a smooth `h`.
+
+To also run on a GPU, `h` and `dh` must be usable inside GPU kernels: plain functions, or
+closures that capture only `isbits` values such as numbers, but no arrays or other mutable
+objects.
 """
 @kwdef struct CustomFunction{H,DH}
     h::H

@@ -68,10 +68,18 @@ k-point.
   ```math
   \langle \psi_{mk} | \sigma_F | \psi_{nk'} \rangle.
   ```
-- `σ_ψϕ`: scratch for the matrix elements with rotated kets, same layout:
+- `σ_ψϕ`: scratch for the matrix elements with rotated kets of one operator ``F``, as
+  `σ_ψϕ[(p,k), (q,k')]`:
   ```math
   \langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle
   = \sum_n \langle \psi_{pk} | \sigma_F | \psi_{nk'} \rangle \, U^{(k')}_{nq}.
+  ```
+- `σ_ϕϕ_summands`: scratch for the summands of
+  ``\langle \phi_q | \sigma_F | \phi_q \rangle`` for one ``k'``, as
+  `σ_ϕϕ_summands[(p,k), q]`:
+  ```math
+  \mathrm{Re}\big(\overline{U^{(k)}_{pq}} \,
+    \langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle\big).
   ```
 - `σ_ϕϕ_diag`: scratch for the expectation values in the rotated orbitals, as
   `σ_ϕϕ_diag[q, F]`:
@@ -80,7 +88,11 @@ k-point.
   = \sum_{k,k'} \sum_p \overline{U^{(k)}_{pq}} \,
     \langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle.
   ```
-- `Γ`: scratch for the Euclidean gradient, one matrix per k-point, returned by `gradient`:
+- `dh`: scratch for ``w_F \, h'\big(\langle \phi_q | \sigma_F | \phi_q \rangle\big)`` of one
+  operator ``F``, as `dh[q]`.
+- `U_all_k`, `Γ_all_k`: the unitaries and the gradient of all k-points in one matrix each,
+  `vcat` of the per-k-point matrices, as `[(m,k), q]`.
+- `Γ`: one view per k-point into `Γ_all_k`, returned by `gradient`:
   ```math
   \Gamma^{(k)}_{pq}
   = \sum_F w_F \, h'\big(\langle \phi_q | \sigma_F | \phi_q \rangle\big)
@@ -91,12 +103,16 @@ At the Γ point, these are the formulas of [`JointDiagonalizationFunctional`](@r
 several k-points, the sums over ``k, k'`` still have to be restricted to the k-points of one
 spin channel and normalized; so far only the Γ point is supported.
 """
-struct JointDiagOrbitalSubspaceCache{H,TW,TS,TD,TG}
+struct JointDiagOrbitalSubspaceCache{H,TW,TS,TB,TR,TV,TG}
     h::H
     w::TW
     σ_ψψ::TS
-    σ_ψϕ::TS
-    σ_ϕϕ_diag::TD
+    σ_ψϕ::TB
+    σ_ϕϕ_summands::TR
+    σ_ϕϕ_diag::TR
+    dh::TV
+    U_all_k::TB
+    Γ_all_k::TB
     Γ::TG
 end
 
@@ -137,46 +153,57 @@ function prepare_gradient(
     σ_ψψ = permutedims(σ_ψψ, (2,1,4,3,5))
     σ_ψψ = reshape(σ_ψψ, N*Nk, N*Nk, NF)
 
+    M = N * Nk
+    T = eltype(σ_ψψ)
+    Γ_all_k = similar(σ_ψψ, M, N)
     return JointDiagOrbitalSubspaceCache(
         functional.h,
         w,
         σ_ψψ,
-        similar(σ_ψψ),
-        similar(σ_ψψ, real(eltype(σ_ψψ)), N, NF),
-        [similar(σ_ψψ, N, N) for _ in 1:Nk],
+        similar(σ_ψψ, M, M),
+        similar(σ_ψψ, real(T), M, N),
+        similar(σ_ψψ, real(T), N, NF),
+        similar(σ_ψψ, real(T), N),
+        similar(σ_ψψ, M, N),
+        Γ_all_k,
+        [view(Γ_all_k, (k - 1) * N + 1:k * N, :) for k in 1:Nk],
     )
 end
 
 
-function gradient(prep::JointDiagOrbitalSubspaceCache, U, calc_loss)
-    (; h, w, σ_ψψ, σ_ψϕ, σ_ϕϕ_diag, Γ) = prep
+@views function gradient(prep::JointDiagOrbitalSubspaceCache, U, calc_loss)
+    (; h, w, σ_ψψ, σ_ψϕ, σ_ϕϕ_summands, σ_ϕϕ_diag, dh, U_all_k, Γ_all_k, Γ) = prep
     N = size(σ_ϕϕ_diag, 1)
-    
+
     # helper for the orbitals of k-point k in the combined index (orbital, k-point)
-    orbitals(N, k) = (k - 1) * N + 1:k * N
+    orbitals(k) = (k - 1) * N + 1:k * N
 
-    # ⟨ψ_pk|σ_F|ϕ_qk'⟩ = Σ_n ⟨ψ_pk|σ_F|ψ_nk'⟩ U[k'][n,q]
-    for F in eachindex(w), (k′, Uk′) in enumerate(U)
-        @views mul!(σ_ψϕ[:, orbitals(N, k′), F], σ_ψψ[:, orbitals(N, k′), F], Uk′)
+    for (k, Uk) in enumerate(U)
+        U_all_k[orbitals(k), :] .= Uk
     end
 
-    # ⟨ϕ_q|σ_F|ϕ_q⟩, real since σ_F is Hermitian
-    fill!(σ_ϕϕ_diag, 0)
-    for F in eachindex(w), k′ in eachindex(U), (k, Uk) in enumerate(U), q in 1:N
-        column = orbitals(N, k′)[q]
-        @views σ_ϕϕ_diag[q, F] += real(dot(Uk[:, q], σ_ψϕ[orbitals(N, k), column, F]))
-    end
-
-    # Γ[k][p,q] = Σ_F w_F h′(⟨ϕ_q|σ_F|ϕ_q⟩) Σ_k' ⟨ψ_pk|σ_F|ϕ_qk'⟩
-    for (k, Γ_k) in enumerate(Γ)
-        fill!(Γ_k, 0)
-        for F in eachindex(w), k′ in eachindex(U), q in 1:N
-            c = w[F] * derivative(h, σ_ϕϕ_diag[q, F])
-            column = orbitals(N, k′)[q]
-            @views Γ_k[:, q] .+= c .* σ_ψϕ[orbitals(N, k), column, F]
+    fill!(Γ_all_k, 0)
+    for F in eachindex(w)
+        fill!(σ_ϕϕ_diag[:, F], 0)
+        
+        for (k′, Uk′) in enumerate(U)
+            # ⟨ψ_pk|σ_F|ϕ_qk'⟩ = Σ_n ⟨ψ_pk|σ_F|ψ_nk'⟩ U[k'][n,q]
+            mul!(σ_ψϕ[:, orbitals(k′)], σ_ψψ[:, orbitals(k′), F], Uk′)
+            
+            # ⟨ϕ_q|σ_F|ϕ_q⟩ = Σ_{k,k'} Σ_p conj(U[k][p,q]) ⟨ψ_pk|σ_F|ϕ_qk'⟩,
+            # real since σ_F is Hermitian
+            σ_ϕϕ_summands .= real.(conj.(U_all_k) .* σ_ψϕ[:, orbitals(k′)])
+            
+            # adds the sum over the rows (p,k) to ⟨ϕ_q|σ_F|ϕ_q⟩
+            sum!(transpose(σ_ϕϕ_diag[:, F]), σ_ϕϕ_summands; init=false)
+        end
+        
+        # Γ[k][p,q] = Σ_F w_F h′(⟨ϕ_q|σ_F|ϕ_q⟩) Σ_k' ⟨ψ_pk|σ_F|ϕ_qk'⟩
+        dh .= w[F] .* derivative.(Ref(h), σ_ϕϕ_diag[:, F])
+        for k′ in eachindex(U)
+            Γ_all_k .+= σ_ψϕ[:, orbitals(k′)] .* transpose(dh)
         end
     end
-
-    L = calc_loss ? sum(w[F] * h(σ_ϕϕ_diag[q, F]) for q in 1:N, F in eachindex(w)) : NaN
+    L = calc_loss ? sum(w[F] * sum(h, σ_ϕϕ_diag[:, F]) for F in eachindex(w)) : NaN
     return Γ, L
 end
