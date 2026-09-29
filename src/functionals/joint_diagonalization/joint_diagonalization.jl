@@ -117,7 +117,13 @@ function prepare_gradient(
 
     # compute Fourier representation of nuclear (pseudo-)potentials 
     V = one_body_operators(functional, basis, FourierSpace(), Gs)
-    
+
+    # operators with zero weight do not contribute to the loss
+    w = weights(functional, size(V, 2))
+    nonzero = findall(!iszero, w)
+    V = V[:, nonzero]
+    w = w[nonzero]
+
     Nk, N, _, _, NG = size(ρ)
     NF = size(V, 2)
 
@@ -126,13 +132,14 @@ function prepare_gradient(
     # σ_ψψ[k,m,k',n,F] = Σ_G ρ[k,m,k',n,G] V[G,F]^*
     σ_ψψ = reshape(ρ_matrix * conj(V), Nk, N, Nk, N, NF)
 
+    # for performance reasons:
     # switch index order k ⟷ m and k' ⟷ n, i.e. (1,2,3,4,5) ⟶ (2,1,4,3,5)
     σ_ψψ = permutedims(σ_ψψ, (2,1,4,3,5))
     σ_ψψ = reshape(σ_ψψ, N*Nk, N*Nk, NF)
 
     return JointDiagOrbitalSubspaceCache(
         functional.h,
-        weights(functional, NF),
+        w,
         σ_ψψ,
         similar(σ_ψψ),
         similar(σ_ψψ, real(eltype(σ_ψψ)), N, NF),
@@ -141,24 +148,23 @@ function prepare_gradient(
 end
 
 
-# the orbitals of k-point k in the combined index (orbital, k-point)
-orbitals(N, k) = (k - 1) * N + 1:k * N
-
-
 function gradient(prep::JointDiagOrbitalSubspaceCache, U, calc_loss)
     (; h, w, σ_ψψ, σ_ψϕ, σ_ϕϕ_diag, Γ) = prep
     N = size(σ_ϕϕ_diag, 1)
+    
+    # helper for the orbitals of k-point k in the combined index (orbital, k-point)
+    orbitals(N, k) = (k - 1) * N + 1:k * N
 
     # ⟨ψ_pk|σ_F|ϕ_qk'⟩ = Σ_n ⟨ψ_pk|σ_F|ψ_nk'⟩ U[k'][n,q]
-    for F in eachindex(w), (k′, U_k′) in enumerate(U)
-        @views mul!(σ_ψϕ[:, orbitals(N, k′), F], σ_ψψ[:, orbitals(N, k′), F], U_k′)
+    for F in eachindex(w), (k′, Uk′) in enumerate(U)
+        @views mul!(σ_ψϕ[:, orbitals(N, k′), F], σ_ψψ[:, orbitals(N, k′), F], Uk′)
     end
 
     # ⟨ϕ_q|σ_F|ϕ_q⟩, real since σ_F is Hermitian
     fill!(σ_ϕϕ_diag, 0)
-    for F in eachindex(w), k′ in eachindex(U), (k, U_k) in enumerate(U), q in 1:N
+    for F in eachindex(w), k′ in eachindex(U), (k, Uk) in enumerate(U), q in 1:N
         column = orbitals(N, k′)[q]
-        @views σ_ϕϕ_diag[q, F] += real(dot(U_k[:, q], σ_ψϕ[orbitals(N, k), column, F]))
+        @views σ_ϕϕ_diag[q, F] += real(dot(Uk[:, q], σ_ψϕ[orbitals(N, k), column, F]))
     end
 
     # Γ[k][p,q] = Σ_F w_F h′(⟨ϕ_q|σ_F|ϕ_q⟩) Σ_k' ⟨ψ_pk|σ_F|ϕ_qk'⟩
