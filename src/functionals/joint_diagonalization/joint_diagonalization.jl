@@ -1,34 +1,39 @@
-"""
+@doc raw"""
     JointDiagonalizationFunctional
 
 Loss functionals of the form
+```math
+L(U) = \sum_F w_F \sum_i h\big(\langle \phi_i | \sigma_F | \phi_i \rangle\big),
+\qquad \phi_i = \sum_j U_{ji} \, \psi_j,
+```
+with weights ``w_F``, Hermitian one-body operators ``\sigma_F`` and a scalar function
+``h``. The Euclidean gradient is
+```math
+\Gamma_{pq} = \frac{\partial L}{\partial \overline{U_{pq}}}
+= \sum_F w_F \, h'\big(\langle \phi_q | \sigma_F | \phi_q \rangle\big)
+  \langle \psi_p | \sigma_F | \phi_q \rangle.
+```
 
-    L(U) = Σ_F w_F Σ_i h(⟨ϕ_i|σ_F|ϕ_i⟩),    ϕ_i = Σ_j U_ji ψ_j
+The loss is maximized, and ``h`` can be any scalar function. The family is named after the
+case of a convex ``h`` (e.g. `Monomial(2)`): then the maximum is reached where all
+``\sigma_F`` are as diagonal as possible in the rotated orbitals, i.e. where ``U`` jointly
+diagonalizes them. For a non-convex ``h`` this interpretation no longer holds.
 
-with weights w_F, Hermitian one-body operators σ_F and a scalar function h.
-Euclidean gradient:
-
-    Γ_pq = ∂L/∂conj(U_pq) = Σ_F w_F h'(⟨ϕ_q|σ_F|ϕ_q⟩) ⟨ψ_p|σ_F|ϕ_q⟩
-
-The loss is maximized, and `h` can be any scalar function. The family is named after the
-case of a convex `h` (e.g. `Monomial(2)`): then the maximum is reached where all σ_F are as
-diagonal as possible in the rotated orbitals, i.e. where U jointly diagonalizes them. For a
-non-convex `h` this interpretation no longer holds.
-
-A subtype has the fields `h` (e.g. a `Monomial`) and `w` (one number for all F, or a vector
-with one weight per F), and implements `one_body_operators` for `FourierSpace` and
-`RealSpace`. `OrbitalSubspace` is built from the `FourierSpace` operators, so all three
-representations then work for it automatically.
+A subtype has the fields `h` (e.g. a [`Monomial`](@ref)) and `w` (one number for all ``F``,
+or a vector with one weight per ``F``), and implements [`one_body_operators`](@ref) for
+[`FourierSpace`](@ref) and [`RealSpace`](@ref). [`OrbitalSubspace`](@ref) is built from the
+`FourierSpace` operators, so all three representations then work for it automatically.
 """
 abstract type JointDiagonalizationFunctional end
 
 
-"""
+@doc raw"""
     one_body_operators(functional, basis, ::RealSpace)
     one_body_operators(functional, basis, ::FourierSpace, Gs)
 
-The one-body operators σ_F that define the `functional`: on the real-space grid, or as an
-N_G × NF matrix of Fourier coefficients σ_F(G) at the G vectors `Gs`.
+The one-body operators ``\sigma_F`` that define the `functional`: on the real-space grid,
+or as an ``N_G \times N_F`` matrix of Fourier coefficients ``\sigma_F(\bm G)`` at the
+vectors `Gs` (reduced coordinates).
 """
 function one_body_operators end
 
@@ -38,6 +43,7 @@ maximize(::JointDiagonalizationFunctional) = true
 # the expectation value ⟨ϕ_i|σ_F|ϕ_i⟩ is quadratic in U -> factor 2
 max_taylor_degree(f::JointDiagonalizationFunctional) = 2 * taylor_degree(f.h)
 
+# the weights w_F as a vector, from one number for all F or one number per F
 function weights(f::JointDiagonalizationFunctional, NF::Integer)
     f.w isa Number && return fill(float(f.w), NF)
     length(f.w) == NF || throw(DimensionMismatch(
@@ -46,15 +52,32 @@ function weights(f::JointDiagonalizationFunctional, NF::Integer)
 end
 
 
-# ψ: the given orbitals, ϕ: the rotated ones. Combined index (orbital, k-point) with the
-# orbital fastest, over all k-points of the basis (spin included); at Γ a single k-point
+@doc raw"""
+    JointDiagOrbitalSubspaceCache
+
+What [`gradient`](@ref) needs for a [`JointDiagonalizationFunctional`](@ref) in the
+[`OrbitalSubspace`](@ref) representation, created by [`prepare_gradient`](@ref).
+
+``\psi`` are the given orbitals and ``\phi`` the rotated ones. The orbitals are numbered
+by a combined index ``(m, k)`` of orbital ``m`` and k-point ``k``, with the orbital running
+fastest, over all k-points of the basis (spin included); at the Γ point there is a single
+k-point.
+
+- `h`, `w`: the scalar function ``h`` and the weights ``w_F``.
+- `σ_ψψ`: ``\langle \psi_{mk} | \sigma_F | \psi_{nk'} \rangle`` as
+  `σ_ψψ[(m,k), (n,k'), F]`.
+- `σ_ψϕ`: scratch for ``\langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle``, same layout.
+- `σ_ϕϕ_diag`: scratch for ``\langle \phi_q | \sigma_F | \phi_q \rangle`` as
+  `σ_ϕϕ_diag[q, F]`.
+- `Γ`: scratch for the gradient, one matrix per k-point, returned by `gradient`.
+"""
 struct JointDiagOrbitalSubspaceCache{H,TW,TS,TD,TG}
     h::H
-    w::TW             # weights w_F
-    σ_ψψ::TS          # ⟨ψ_mk|σ_F|ψ_nk'⟩
-    σ_ψϕ::TS          # scratch: ⟨ψ_pk|σ_F|ϕ_qk'⟩
-    σ_ϕϕ_diag::TD     # scratch: ⟨ϕ_q|σ_F|ϕ_q⟩
-    Γ::TG             # scratch: Γ[k] = ∂L/∂conj(U[k]), returned by gradient
+    w::TW
+    σ_ψψ::TS
+    σ_ψϕ::TS
+    σ_ϕϕ_diag::TD
+    Γ::TG
 end
 
 
@@ -111,7 +134,15 @@ end
 orbitals(N, k) = (k - 1) * N + 1:k * N
 
 
-# ⟨ψ_pk|σ_F|ϕ_qk'⟩ = Σ_n ⟨ψ_pk|σ_F|ψ_nk'⟩ U[k'][n,q]
+@doc raw"""
+    rotate_kets!(σ_ψϕ, σ_ψψ, U)
+
+Rotate the ket orbitals of the matrix elements in `σ_ψψ` with the unitaries `U`:
+```math
+\langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle
+= \sum_n \langle \psi_{pk} | \sigma_F | \psi_{nk'} \rangle \, U^{(k')}_{nq}.
+```
+"""
 function rotate_kets!(σ_ψϕ, σ_ψψ, U)
     N = size(first(U), 2)
     for F in axes(σ_ψψ, 3), (k′, U_k′) in enumerate(U)
@@ -121,9 +152,19 @@ function rotate_kets!(σ_ψϕ, σ_ψψ, U)
 end
 
 
-# ⟨ϕ_q|σ_F|ϕ_q⟩ = Σ_{k,k'} Σ_p conj(U[k][p,q]) ⟨ψ_pk|σ_F|ϕ_qk'⟩, summed over the k-points
-# of the spin channel of q (normalization for k-points to be fixed); real, since σ_F is
-# Hermitian
+@doc raw"""
+    expectation_values!(σ_ϕϕ_diag, U, σ_ψϕ)
+
+The expectation values of the operators in the rotated orbitals,
+```math
+\langle \phi_q | \sigma_F | \phi_q \rangle
+= \sum_{k,k'} \sum_p \overline{U^{(k)}_{pq}} \,
+  \langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle,
+```
+which are real, since ``\sigma_F`` is Hermitian. For several k-points, the sums still have
+to be restricted to the k-points of one spin channel and normalized; so far only the Γ point
+is supported.
+"""
 function expectation_values!(σ_ϕϕ_diag, U, σ_ψϕ)
     N = size(σ_ϕϕ_diag, 1)
     fill!(σ_ϕϕ_diag, 0)
@@ -135,7 +176,16 @@ function expectation_values!(σ_ϕϕ_diag, U, σ_ψϕ)
 end
 
 
-# Γ[k][p,q] = ∂L/∂conj(U[k][p,q]) = Σ_F w_F h′(⟨ϕ_q|σ_F|ϕ_q⟩) Σ_k' ⟨ψ_pk|σ_F|ϕ_qk'⟩
+@doc raw"""
+    euclidean_gradient!(Γ, h, w, σ_ϕϕ_diag, σ_ψϕ)
+
+The Euclidean gradient of the loss, one matrix per k-point:
+```math
+\Gamma^{(k)}_{pq} = \frac{\partial L}{\partial \overline{U^{(k)}_{pq}}}
+= \sum_F w_F \, h'\big(\langle \phi_q | \sigma_F | \phi_q \rangle\big)
+  \sum_{k'} \langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle.
+```
+"""
 function euclidean_gradient!(Γ, h, w, σ_ϕϕ_diag, σ_ψϕ)
     N = size(σ_ϕϕ_diag, 1)
     for (k, Γ_k) in enumerate(Γ)
@@ -150,6 +200,13 @@ function euclidean_gradient!(Γ, h, w, σ_ϕϕ_diag, σ_ψϕ)
 end
 
 
-# L = Σ_F w_F Σ_q h(⟨ϕ_q|σ_F|ϕ_q⟩)
+@doc raw"""
+    loss(h, w, σ_ϕϕ_diag)
+
+The loss
+```math
+L = \sum_F w_F \sum_q h\big(\langle \phi_q | \sigma_F | \phi_q \rangle\big).
+```
+"""
 loss(h, w, σ_ϕϕ_diag) =
     sum(w[F] * h(σ_ϕϕ_diag[q, F]) for q in axes(σ_ϕϕ_diag, 1), F in eachindex(w))

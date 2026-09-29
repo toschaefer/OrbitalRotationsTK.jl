@@ -1,14 +1,17 @@
-"""
+@doc raw"""
     NPL(; h=Monomial(2), w=1.0)
 
 The Nuclear Potential Localization (NPL) functional
-
-    L(U) = Σ_F w_F Σ_i h(⟨ϕ_i|σ_F|ϕ_i⟩),    ϕ_i = Σ_j U_ji ψ_j
-
-The one-body operators σ_F are the local (attractive) pseudopotentials of the atoms F,
-hence ⟨ϕ_i|σ_F|ϕ_i⟩ < 0 and `h` must be defined for negative arguments. The expectation
-values are energies in Hartree, so with `Monomial(p)` the loss has units of Hartreeᵖ
-(times the units of `w`), which sets the scale of `tol` in [`rotate`](@ref).
+```math
+L(U) = \sum_F w_F \sum_i h\big(\langle \phi_i | \sigma_F | \phi_i \rangle\big),
+\qquad \phi_i = \sum_j U_{ji} \, \psi_j,
+```
+a [`JointDiagonalizationFunctional`](@ref). The one-body operators ``\sigma_F`` are the
+local (attractive) pseudopotentials of the atoms ``F``, hence
+``\langle \phi_i | \sigma_F | \phi_i \rangle < 0`` and ``h`` must be defined for negative
+arguments. The expectation values are energies in Hartree, so with `Monomial(p)` the loss
+has units of ``\mathrm{Ha}^p`` (times the units of `w`), which sets the scale of `tol` in
+[`rotate`](@ref).
 
 The weights `w` are either one number for all atoms or a vector with one weight per atom, in
 the order of `basis.model.atoms`. A weight of zero excludes the atom from the functional.
@@ -25,12 +28,18 @@ end
 
 
 
-# Local pseudopotential of each atom in Fourier space, evaluated at the G vectors `Gs`
-# (fractional coordinates). Returns one coefficient vector per atom, ordered like `Gs`.
-#
-# Uses the factorization v_A(G) = v̂_A(|G|) * cis2pi(-G⋅R_A) / sqrt(Ω) into a radial form
-# factor and a structure factor. Evaluating v̂ is a radial quadrature, so it is done once per
-# distinct |G| and element instead of once per (G, atom) pair.
+@doc raw"""
+    atom_local_potentials_fourier(basis, Gs)
+
+The local pseudopotential of each atom ``A`` in Fourier space, at the vectors `Gs` (reduced
+coordinates): one coefficient vector per atom, ordered like `Gs`. In DFTK's normalization,
+```math
+v_A(\bm G) = \frac{1}{\sqrt{\Omega}} \, \hat v_A(|\bm G|) \, e^{-i \bm G \cdot \bm R_A},
+```
+a radial form factor ``\hat v_A`` times a structure factor. Evaluating ``\hat v_A`` is a
+radial quadrature, so it is done once per distinct ``|\bm G|`` and element instead of once
+per pair of ``\bm G`` and atom.
+"""
 function atom_local_potentials_fourier(basis, Gs)
     model = basis.model
     Ω = model.unit_cell_volume
@@ -63,8 +72,12 @@ function atom_local_potentials_fourier(basis, Gs)
 end
 
 
-# Real-space local pseudopotential of each atom, one `basis.fft_size` array per atom.
-# Needs the full cubic FFT grid, since `irfft` consumes every coefficient.
+"""
+    atom_local_potentials_real(basis)
+
+The local pseudopotential of each atom on the real-space grid, one `basis.fft_size` array
+per atom. Needs the full cubic FFT grid, since `irfft` consumes every coefficient.
+"""
 atom_local_potentials_real(basis) =
     [DFTK.irfft(basis, reshape(V, basis.fft_size))
      for V in atom_local_potentials_fourier(basis, vec(G_vectors(basis)))]

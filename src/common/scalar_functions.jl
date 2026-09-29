@@ -1,7 +1,7 @@
 """
     derivative(h, x)
 
-The derivative h'(x) of the scalar function `h`.
+The derivative ``h'(x)`` of the scalar function `h`.
 """
 function derivative end
 
@@ -15,10 +15,10 @@ This is needed for line search algorithms of optimizers.
 function taylor_degree end
 
 
-"""
+@doc raw"""
     Monomial(p)
 
-h(x) = xᵖ, with h′(x) = p xᵖ⁻¹ and Taylor degree p.
+The scalar function ``h(x) = x^p``, with ``h'(x) = p \, x^{p-1}`` and Taylor degree ``p``.
 """
 struct Monomial
     p::Int
@@ -37,11 +37,11 @@ used by the line search of the optimizer.
 `taylor_degree` is required because the optimizer needs it and it cannot be derived from
 `h`. Along a search direction the loss oscillates, and the line search samples it inside a
 window whose width is inversely proportional to `taylor_degree`. For a polynomial of degree
-k, `taylor_degree = k` is exact and the window is guaranteed to contain the first maximum.
-For any other `h` there is no exact value: too large a degree makes the window too narrow,
-so the maximum can lie outside it and the optimization stops early; too small a degree makes
-the window too wide and costs iterations. Use the degree of a polynomial that approximates
-`h` well over the relevant range; 2 is a reasonable start for a smooth `h`.
+``k``, `taylor_degree = k` is exact and the window is guaranteed to contain the first
+maximum. For any other `h` there is no exact value: too large a degree makes the window too
+narrow, so the maximum can lie outside it and the optimization stops early; too small a
+degree makes the window too wide and costs iterations. Use the degree of a polynomial that
+approximates `h` well over the relevant range; 2 is a reasonable start for a smooth `h`.
 """
 @kwdef struct CustomFunction{H,DH}
     h::H

@@ -12,4 +12,5 @@ scfres = self_consistent_field(basis)
 res    = rotate(scfres.basis, ψ, NPL())
 ```
 
-All public functions and types are listed in the [Code reference](@ref).
+The [Code reference](@ref) lists the public API and, for developers, the documented
+internals.

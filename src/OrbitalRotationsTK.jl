@@ -17,6 +17,8 @@ export RealSpace
 export FourierSpace
 public prepare_gradient
 public gradient
+public maximize
+public max_taylor_degree
 include("common/representations.jl")
 
 public JointDiagonalizationFunctional

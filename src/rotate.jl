@@ -1,4 +1,6 @@
 """
+    RotationResult
+
 Result of [`rotate`](@ref): the rotated orbitals `ψ` (one matrix per k-point), the result
 of the unitary optimization `optimizer` (with the optimal unitary, loss and convergence
 information, see `Lucon.optimize`), and the `functional` and `representation` used.
@@ -11,24 +13,29 @@ struct RotationResult{Tψ,TO,TF,TR}
 end
 
 
-"""
+@doc raw"""
     rotate(basis, ψ, functional; representation=OrbitalSubspace(), U0=nothing,
            tol=1e-6, maxiter=1000, callback=nothing)
 
-Find the unitaries U, one per k-point, that optimize the `functional` for the rotated
-orbitals ϕ_i = Σ_j U_ji ψ_j, i.e. `ψ[ik] * U[ik]` at every k-point, and return a
-[`RotationResult`](@ref). Currently Γ-point only.
+Find the unitaries ``U^{(k)}``, one per k-point ``k``, that optimize the `functional` for
+the rotated orbitals
+```math
+\phi_{ik} = \sum_j U^{(k)}_{ji} \, \psi_{jk},
+```
+i.e. `ψ[k] * U[k]` at every k-point, and return a [`RotationResult`](@ref). Currently
+Γ-point only.
 
 - `basis`: the `PlaneWaveBasis` of the orbitals, e.g. `scfres.basis`.
 - `ψ`: orthonormal orbitals of `basis`, one matrix per k-point with one orbital per column,
   as in `scfres.ψ`.
 - `representation`: how the loss and its gradient are evaluated.
 - `U0`: initial unitaries, one per k-point; the identity if `nothing`.
-- `tol`: convergence threshold for the largest element |G_pq| of the Riemannian gradient
-  G = ΓU† − UΓ† of the loss, Γ_pq = ∂L/∂conj(U_pq), in units of the loss. G_pq is
-  proportional to the derivative of the loss with respect to the angle of a rotation of
-  the orbital pair (p,q), so the criterion does not grow with the number of orbitals. The
-  units of the loss are given in the docstring of each functional.
+- `tol`: convergence threshold for the largest element ``|G_{pq}|`` of the Riemannian
+  gradient ``G = \Gamma U^\dagger - U \Gamma^\dagger`` of the loss, with the Euclidean
+  gradient ``\Gamma_{pq} = \partial L / \partial \overline{U_{pq}}``, in units of the loss.
+  ``G_{pq}`` is proportional to the derivative of the loss with respect to the angle of a
+  rotation of the orbital pair ``(p, q)``, so the criterion does not grow with the number
+  of orbitals. The units of the loss are given in the docstring of each functional.
 - `maxiter`: maximum number of rotations of `U`.
 - `callback`: called once per iteration with the state of the optimizer; returning `true`
   stops the optimization.
