@@ -46,8 +46,10 @@ function prepare_gradient end
 """
     gradient(prep, U, calc_loss) -> (Γ, L)
 
-Loss `L` and Euclidean gradient `Γ_pq = ∂L/∂conj(U_pq)` at the unitary `U`, using `prep`
-from [`prepare_gradient`](@ref). `L` is only computed if `calc_loss` is true.
-Called by the optimizer in every step.
+Loss `L` and Euclidean gradient `Γ` at the unitaries `U`, using `prep` from
+[`prepare_gradient`](@ref). `U` and `Γ` hold one matrix per k-point, in the order of
+`basis.kpoints` (spin included), with Γ[k]_pq = ∂L/∂conj(U[k]_pq). `L` is only computed if
+`calc_loss` is true, and is `NaN` otherwise. `Γ` may be a buffer that the next call
+overwrites. Called by the optimizer in every step.
 """
 function gradient end

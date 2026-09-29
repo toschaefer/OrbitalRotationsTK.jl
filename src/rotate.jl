@@ -15,8 +15,8 @@ end
     rotate(basis, ψ, functional; representation=OrbitalSubspace(), U0=nothing,
            tol=1e-6, maxiter=1000, callback=nothing)
 
-Find the unitary `U` that optimizes the `functional` for the rotated orbitals
-ϕ_i = Σ_j U_ji ψ_j, i.e. `ψk * U` for the orbitals `ψk` of a k-point, and return a
+Find the unitaries U, one per k-point, that optimize the `functional` for the rotated
+orbitals ϕ_i = Σ_j U_ji ψ_j, i.e. `ψ[ik] * U[ik]` at every k-point, and return a
 [`RotationResult`](@ref). Currently Γ-point only.
 
 - `basis`: the `PlaneWaveBasis` of the orbitals, e.g. `scfres.basis`.
@@ -51,22 +51,29 @@ function rotate(
         throw(ArgumentError("currently Γ-only!"))
     length(ψ) == length(basis.kpoints) || throw(DimensionMismatch(
         "expected orbitals for $(length(basis.kpoints)) k-point(s), got $(length(ψ))"))
-    ψk = only(ψ)
-    N = size(ψk, 2)
-    U = isnothing(U0) ? Matrix{eltype(ψk)}(I, N, N) : only(U0)
-    size(U) == (N, N) || throw(DimensionMismatch("U0 must be $N×$N, got $(size(U))"))
-    U'U ≈ I || throw(ArgumentError("U0 must be unitary"))
+    U0 = @something U0 [Matrix{eltype(ψk)}(I, size(ψk, 2), size(ψk, 2)) for ψk in ψ]
+    length(U0) == length(ψ) || throw(DimensionMismatch("expected one U0 per k-point"))
+    for (ψk, U0k) in zip(ψ, U0)
+        N = size(ψk, 2)
+        size(U0k) == (N, N) ||
+            throw(DimensionMismatch("U0 must be $N×$N, got $(size(U0k))"))
+        U0k'U0k ≈ I || throw(ArgumentError("U0 must be unitary"))
+    end
 
     # prepare and optimize
     prep = prepare_gradient(functional, representation, basis, ψ)
+    # Γ only: Lucon optimizes a single unitary
     res = Lucon.optimize(
-        (U, calc_loss) -> gradient(prep, U, calc_loss),
-        U;
+        only(U0);
         max_taylor_degree=max_taylor_degree(functional),
         maximize=maximize(functional),
         max_gradient_tolerance=tol,
         max_iter=maxiter,
         callback,
-    )
-    return RotationResult([ψk * res.U], res, functional, representation)
+    ) do U, calc_loss
+        Γ, L = gradient(prep, [U], calc_loss)
+        return only(Γ), L
+    end
+    U = [res.U]
+    return RotationResult(ψ .* U, res, functional, representation)
 end
