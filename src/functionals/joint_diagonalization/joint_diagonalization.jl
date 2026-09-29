@@ -64,12 +64,32 @@ fastest, over all k-points of the basis (spin included); at the Γ point there i
 k-point.
 
 - `h`, `w`: the scalar function ``h`` and the weights ``w_F``.
-- `σ_ψψ`: ``\langle \psi_{mk} | \sigma_F | \psi_{nk'} \rangle`` as
-  `σ_ψψ[(m,k), (n,k'), F]`.
-- `σ_ψϕ`: scratch for ``\langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle``, same layout.
-- `σ_ϕϕ_diag`: scratch for ``\langle \phi_q | \sigma_F | \phi_q \rangle`` as
-  `σ_ϕϕ_diag[q, F]`.
-- `Γ`: scratch for the gradient, one matrix per k-point, returned by `gradient`.
+- `σ_ψψ`: the matrix elements between the given orbitals, as `σ_ψψ[(m,k), (n,k'), F]`:
+  ```math
+  \langle \psi_{mk} | \sigma_F | \psi_{nk'} \rangle.
+  ```
+- `σ_ψϕ`: scratch for the matrix elements with rotated kets, same layout:
+  ```math
+  \langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle
+  = \sum_n \langle \psi_{pk} | \sigma_F | \psi_{nk'} \rangle \, U^{(k')}_{nq}.
+  ```
+- `σ_ϕϕ_diag`: scratch for the expectation values in the rotated orbitals, as
+  `σ_ϕϕ_diag[q, F]`:
+  ```math
+  \langle \phi_q | \sigma_F | \phi_q \rangle
+  = \sum_{k,k'} \sum_p \overline{U^{(k)}_{pq}} \,
+    \langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle.
+  ```
+- `Γ`: scratch for the Euclidean gradient, one matrix per k-point, returned by `gradient`:
+  ```math
+  \Gamma^{(k)}_{pq}
+  = \sum_F w_F \, h'\big(\langle \phi_q | \sigma_F | \phi_q \rangle\big)
+    \sum_{k'} \langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle.
+  ```
+
+At the Γ point, these are the formulas of [`JointDiagonalizationFunctional`](@ref). For
+several k-points, the sums over ``k, k'`` still have to be restricted to the k-points of one
+spin channel and normalized; so far only the Γ point is supported.
 """
 struct JointDiagOrbitalSubspaceCache{H,TW,TS,TD,TG}
     h::H
@@ -121,92 +141,36 @@ function prepare_gradient(
 end
 
 
-function gradient(prep::JointDiagOrbitalSubspaceCache, U, calc_loss)
-    (; h, w, σ_ψψ, σ_ψϕ, σ_ϕϕ_diag, Γ) = prep
-    rotate_kets!(σ_ψϕ, σ_ψψ, U)
-    expectation_values!(σ_ϕϕ_diag, U, σ_ψϕ)
-    euclidean_gradient!(Γ, h, w, σ_ϕϕ_diag, σ_ψϕ)
-    return Γ, calc_loss ? loss(h, w, σ_ϕϕ_diag) : NaN
-end
-
-
 # the orbitals of k-point k in the combined index (orbital, k-point)
 orbitals(N, k) = (k - 1) * N + 1:k * N
 
 
-@doc raw"""
-    rotate_kets!(σ_ψϕ, σ_ψψ, U)
+function gradient(prep::JointDiagOrbitalSubspaceCache, U, calc_loss)
+    (; h, w, σ_ψψ, σ_ψϕ, σ_ϕϕ_diag, Γ) = prep
+    N = size(σ_ϕϕ_diag, 1)
 
-Rotate the ket orbitals of the matrix elements in `σ_ψψ` with the unitaries `U`:
-```math
-\langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle
-= \sum_n \langle \psi_{pk} | \sigma_F | \psi_{nk'} \rangle \, U^{(k')}_{nq}.
-```
-"""
-function rotate_kets!(σ_ψϕ, σ_ψψ, U)
-    N = size(first(U), 2)
-    for F in axes(σ_ψψ, 3), (k′, U_k′) in enumerate(U)
+    # ⟨ψ_pk|σ_F|ϕ_qk'⟩ = Σ_n ⟨ψ_pk|σ_F|ψ_nk'⟩ U[k'][n,q]
+    for F in eachindex(w), (k′, U_k′) in enumerate(U)
         @views mul!(σ_ψϕ[:, orbitals(N, k′), F], σ_ψψ[:, orbitals(N, k′), F], U_k′)
     end
-    return σ_ψϕ
-end
 
-
-@doc raw"""
-    expectation_values!(σ_ϕϕ_diag, U, σ_ψϕ)
-
-The expectation values of the operators in the rotated orbitals,
-```math
-\langle \phi_q | \sigma_F | \phi_q \rangle
-= \sum_{k,k'} \sum_p \overline{U^{(k)}_{pq}} \,
-  \langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle,
-```
-which are real, since ``\sigma_F`` is Hermitian. For several k-points, the sums still have
-to be restricted to the k-points of one spin channel and normalized; so far only the Γ point
-is supported.
-"""
-function expectation_values!(σ_ϕϕ_diag, U, σ_ψϕ)
-    N = size(σ_ϕϕ_diag, 1)
+    # ⟨ϕ_q|σ_F|ϕ_q⟩, real since σ_F is Hermitian
     fill!(σ_ϕϕ_diag, 0)
-    for F in axes(σ_ψϕ, 3), k′ in eachindex(U), (k, U_k) in enumerate(U), q in 1:N
+    for F in eachindex(w), k′ in eachindex(U), (k, U_k) in enumerate(U), q in 1:N
         column = orbitals(N, k′)[q]
         @views σ_ϕϕ_diag[q, F] += real(dot(U_k[:, q], σ_ψϕ[orbitals(N, k), column, F]))
     end
-    return σ_ϕϕ_diag
-end
 
-
-@doc raw"""
-    euclidean_gradient!(Γ, h, w, σ_ϕϕ_diag, σ_ψϕ)
-
-The Euclidean gradient of the loss, one matrix per k-point:
-```math
-\Gamma^{(k)}_{pq} = \frac{\partial L}{\partial \overline{U^{(k)}_{pq}}}
-= \sum_F w_F \, h'\big(\langle \phi_q | \sigma_F | \phi_q \rangle\big)
-  \sum_{k'} \langle \psi_{pk} | \sigma_F | \phi_{qk'} \rangle.
-```
-"""
-function euclidean_gradient!(Γ, h, w, σ_ϕϕ_diag, σ_ψϕ)
-    N = size(σ_ϕϕ_diag, 1)
+    # Γ[k][p,q] = Σ_F w_F h′(⟨ϕ_q|σ_F|ϕ_q⟩) Σ_k' ⟨ψ_pk|σ_F|ϕ_qk'⟩
     for (k, Γ_k) in enumerate(Γ)
         fill!(Γ_k, 0)
-        for F in eachindex(w), k′ in eachindex(Γ), q in 1:N
+        for F in eachindex(w), k′ in eachindex(U), q in 1:N
             c = w[F] * derivative(h, σ_ϕϕ_diag[q, F])
             column = orbitals(N, k′)[q]
             @views Γ_k[:, q] .+= c .* σ_ψϕ[orbitals(N, k), column, F]
         end
     end
-    return Γ
+
+    L = calc_loss ? sum(w[F] * h(σ_ϕϕ_diag[q, F]) for q in 1:N, F in eachindex(w)) : NaN
+    return Γ, L
 end
-
-
-@doc raw"""
-    loss(h, w, σ_ϕϕ_diag)
-
-The loss
-```math
-L = \sum_F w_F \sum_q h\big(\langle \phi_q | \sigma_F | \phi_q \rangle\big).
-```
-"""
-loss(h, w, σ_ϕϕ_diag) =
-    sum(w[F] * h(σ_ϕϕ_diag[q, F]) for q in axes(σ_ϕϕ_diag, 1), F in eachindex(w))
