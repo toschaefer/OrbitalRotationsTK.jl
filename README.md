@@ -8,14 +8,16 @@ user-chosen loss functional, for instance to localize them. Only the given orbit
 (occupied, virtual, or both); unlike an SCF step, the rotation leaves the space they span
 unchanged. The unitary optimization is done by [Lucon.jl](https://github.com/toschaefer/Lucon.jl).
 
-> **Status:** early development. The interface below is in place; the numerics are not
-> implemented yet.
+> **Status:** early development. The `NPL` functional works at the Γ point; the interface
+> may still change.
 
 ## Features
 
 - Functionals: Nuclear Potential Localization, `NPL(; h, w)`, with a scalar function `h`
   (e.g. `Monomial(2)`) and optional weights `w` per atom.
 - Representations of the loss and its gradient: `OrbitalSubspace()` (default).
+- Starts from a random unitary, so that symmetric structures do not get stuck at a saddle
+  point; reproducible with a seeded `rng`.
 - Γ-point only.
 
 ## Installation
@@ -32,20 +34,26 @@ Once the required changes are released in DFTK.jl and PsiTK.jl, a plain `Pkg.add
 
 ## Usage
 
+Localize the occupied orbitals of a converged DFTK calculation at the Γ point:
+
 ```julia
 using DFTK, OrbitalRotationsTK
 
-scfres = self_consistent_field(basis)
-ψ      = [ψk[:, 1:4] for ψk in scfres.ψ]      # the orbitals to rotate, per k-point
-res    = rotate(scfres.basis, ψ, NPL())
+ψ   = [ψk[:, occk .> 0] for (ψk, occk) in zip(scfres.ψ, scfres.occupation)]
+res = rotate(scfres.basis, ψ, NPL())
 
-res.ψ             # rotated orbitals
-res.optimizer.U   # optimal unitary
+res.ψ             # the localized orbitals, one matrix per k-point
+res.optimizer.U   # the optimal unitary
 ```
+
+The [documentation](https://toschaefer.github.io/OrbitalRotationsTK.jl/dev/) has a
+[tutorial](https://toschaefer.github.io/OrbitalRotationsTK.jl/dev/tutorial/) with a complete
+example and the reference of all functions.
 
 ## To do
 
-- [ ] Implement `rotate` and the `OrbitalSubspace` evaluation for `NPL`
+- [x] Implement `rotate` and the `OrbitalSubspace` evaluation for `NPL`
+- [ ] Tests for `gradient` and `rotate`
 - [ ] `FourierSpace` and `RealSpace` representations
 - [ ] More functionals: Foster–Boys, Pipek–Mezey, Edmiston–Ruedenberg, intrinsic bond orbitals
 - [ ] k-points
@@ -55,5 +63,5 @@ res.optimizer.U   # optimal unitary
 
 We welcome contributions from the scientific community! 
 
-- If you encounter a bug, have a feature request, or need help, please open an [issue](https://github.com/toschaefer/PsiTK.jl/issues).
+- If you encounter a bug, have a feature request, or need help, please open an [issue](https://github.com/toschaefer/OrbitalRotationsTK.jl/issues).
 - If you'd like to contribute code, please submit a Pull Request. We recommend opening an issue first to discuss your planned changes. [CONTRIBUTING.md](CONTRIBUTING.md) explains the code design and how to extend it.
