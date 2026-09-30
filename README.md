@@ -39,7 +39,7 @@ Localize the occupied orbitals of a converged DFTK calculation at the Γ point:
 ```julia
 using DFTK, OrbitalRotationsTK
 
-ψ   = [ψk[:, occk .> 0] for (ψk, occk) in zip(scfres.ψ, scfres.occupation)]
+ψ   = DFTK.select_occupied_orbitals(scfres.basis, scfres.ψ, scfres.occupation).ψ
 res = rotate(scfres.basis, ψ, NPL())
 
 res.ψ             # the localized orbitals, one matrix per k-point
