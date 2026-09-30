@@ -56,4 +56,7 @@ Extending the code usually means adding one such noun and its methods, for insta
 - **a scalar function:** a struct with `derivative` and `taylor_degree` methods in
   `src/common/scalar_functions.jl`.
 
+A new family or representation also adds its row or column, and the cost and memory of each
+new combination, to `docs/src/functionals_and_representations.md`.
+
 When in doubt, follow the nearest existing example.

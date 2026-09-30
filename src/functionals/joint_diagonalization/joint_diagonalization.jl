@@ -22,7 +22,9 @@ diagonalizes them. For a non-convex ``h`` this interpretation no longer holds.
 A subtype has the fields `h` (e.g. a [`Monomial`](@ref)) and `w` (one number for all ``F``,
 or a vector with one weight per ``F``), and implements [`one_body_operators`](@ref) for
 [`FourierSpace`](@ref) and [`RealSpace`](@ref). [`OrbitalSubspace`](@ref) is built from the
-`FourierSpace` operators, so all three representations then work for it automatically.
+`FourierSpace` operators.
+
+See [Functionals and representations](@ref) for the available combinations and their cost.
 """
 abstract type JointDiagonalizationFunctional end
 

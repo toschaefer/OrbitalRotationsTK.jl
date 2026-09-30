@@ -10,6 +10,8 @@ orbitals.
 cutoff. Values up to `supersampling^2` of the basis (4 for DFTK's default) are allowed,
 since the FFT grid holds products of orbitals exactly up to there; `Ecut_ratio=4` therefore
 yields the exact overlap densities.
+
+See [Functionals and representations](@ref) for the available combinations and their cost.
 """
 @kwdef struct OrbitalSubspace
     Ecut_ratio::Float64 = 4.0
@@ -19,9 +21,11 @@ end
 """
     FourierSpace(; Ecut_ratio=4.0)
 
-Evaluate loss functionals using Fourier representation of integrals.
+Evaluate loss functionals using Fourier representation of integrals. Not yet implemented.
 
 `Ecut_ratio` has the same meaning as in [`OrbitalSubspace`](@ref).
+
+See [Functionals and representations](@ref) for the available combinations and their cost.
 """
 @kwdef struct FourierSpace
     Ecut_ratio::Float64 = 4.0
@@ -31,7 +35,10 @@ end
 """
     RealSpace()
 
-Evaluate loss functionals using real space representation of integrals.
+Evaluate loss functionals using real space representation of integrals. Not yet
+implemented.
+
+See [Functionals and representations](@ref) for the available combinations and their cost.
 """
 struct RealSpace end
 

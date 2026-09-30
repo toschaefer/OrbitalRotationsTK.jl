@@ -15,6 +15,8 @@ has units of ``\mathrm{Ha}^p`` (times the units of `w`), which sets the scale of
 
 The weights `w` are either one number for all atoms or a vector with one weight per atom, in
 the order of `basis.model.atoms`. A weight of zero excludes the atom from the functional.
+
+See [Functionals and representations](@ref) for the available combinations and their cost.
 """
 @kwdef struct NPL{H,TW} <: JointDiagonalizationFunctional
     h::H = Monomial(2)

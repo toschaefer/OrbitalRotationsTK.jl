@@ -15,7 +15,9 @@ unchanged. The unitary optimization is done by [Lucon.jl](https://github.com/tos
 
 - Functionals: Nuclear Potential Localization, `NPL(; h, w)`, with a scalar function `h`
   (e.g. `Monomial(2)`) and optional weights `w` per atom.
-- Representations of the loss and its gradient: `OrbitalSubspace()` (default).
+- Representations of the loss and its gradient: `OrbitalSubspace()` (default). The
+  [available combinations and their cost](https://toschaefer.github.io/OrbitalRotationsTK.jl/dev/functionals_and_representations/)
+  are listed in the documentation.
 - Starts from a random unitary, so that symmetric structures do not get stuck at a saddle
   point; reproducible with a seeded `rng`.
 - Γ-point only.

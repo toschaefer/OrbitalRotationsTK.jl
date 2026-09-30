@@ -30,5 +30,7 @@ res.ψ    # the localized orbitals
 
 - The [Tutorial](@ref "Tutorial: localized orbitals of water") works through a complete
   example, a water molecule.
+- [Functionals and representations](@ref) shows which combinations are available and how
+  their cost and memory scale with the system size.
 - The [Code reference](@ref) lists the public API and, for developers, the documented
   internals.

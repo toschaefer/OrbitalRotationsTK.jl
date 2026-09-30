@@ -28,7 +28,9 @@ i.e. `ψ[k] * U[k]` at every k-point, and return a [`RotationResult`](@ref). Cur
 - `basis`: the `PlaneWaveBasis` of the orbitals, e.g. `scfres.basis`.
 - `ψ`: orthonormal orbitals of `basis`, one matrix per k-point with one orbital per column,
   as in `scfres.ψ`.
-- `representation`: how the loss and its gradient are evaluated.
+- `representation`: how the loss and its gradient are evaluated. Together with the
+  functional, it decides the cost and memory; see [Functionals and representations](@ref)
+  for the available combinations and how they scale.
 - `U0`: initial unitaries, one per k-point. If `nothing`, random unitaries are drawn from
   `rng`: for structures with exact symmetry, the identity can be a saddle point of the loss
   at which the optimization stops, and a random start avoids it.
