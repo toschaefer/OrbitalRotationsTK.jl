@@ -1,6 +1,7 @@
 module OrbitalRotationsTK
 
 using LinearAlgebra
+import Random
 using DFTK
 import PsiTK
 import Lucon

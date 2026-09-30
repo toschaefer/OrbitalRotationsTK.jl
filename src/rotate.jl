@@ -15,7 +15,7 @@ end
 
 @doc raw"""
     rotate(basis, ψ, functional; representation=OrbitalSubspace(), U0=nothing,
-           tol=1e-6, maxiter=1000, callback=nothing)
+           rng=Random.default_rng(), tol=1e-6, maxiter=1000, callback=nothing)
 
 Find the unitaries ``U^{(k)}``, one per k-point ``k``, that optimize the `functional` for
 the rotated orbitals
@@ -29,7 +29,12 @@ i.e. `ψ[k] * U[k]` at every k-point, and return a [`RotationResult`](@ref). Cur
 - `ψ`: orthonormal orbitals of `basis`, one matrix per k-point with one orbital per column,
   as in `scfres.ψ`.
 - `representation`: how the loss and its gradient are evaluated.
-- `U0`: initial unitaries, one per k-point; the identity if `nothing`.
+- `U0`: initial unitaries, one per k-point. If `nothing`, random unitaries are drawn from
+  `rng`: for structures with exact symmetry, the identity can be a saddle point of the loss
+  at which the optimization stops, and a random start avoids it.
+- `rng`: the random number generator for the initial unitaries if `U0` is `nothing`. Pass a
+  seeded one, e.g. `Random.Xoshiro(1)`, for reproducible results; any random start reaches
+  the same optimum up to the order and phases of the orbitals.
 - `tol`: convergence threshold for the largest element ``|G_{pq}|`` of the Riemannian
   gradient ``G = \Gamma U^\dagger - U \Gamma^\dagger`` of the loss, with the Euclidean
   gradient ``\Gamma_{pq} = \partial L / \partial \overline{U_{pq}}``, in units of the loss.
@@ -49,6 +54,7 @@ function rotate(
     functional;
     representation=OrbitalSubspace(),
     U0::Union{Nothing,AbstractVector{<:AbstractMatrix}}=nothing,
+    rng=Random.default_rng(),
     tol=1e-6,
     maxiter=1000,
     callback=nothing,
@@ -58,7 +64,7 @@ function rotate(
         throw(ArgumentError("currently Γ-only!"))
     length(ψ) == length(basis.kpoints) || throw(DimensionMismatch(
         "expected orbitals for $(length(basis.kpoints)) k-point(s), got $(length(ψ))"))
-    U0 = @something U0 [Matrix{eltype(ψk)}(I, size(ψk, 2), size(ψk, 2)) for ψk in ψ]
+    U0 = @something U0 [random_unitary(rng, eltype(ψk), size(ψk, 2)) for ψk in ψ]
     length(U0) == length(ψ) || throw(DimensionMismatch("expected one U0 per k-point"))
     for (ψk, U0k) in zip(ψ, U0)
         N = size(ψk, 2)
@@ -84,3 +90,7 @@ function rotate(
     U = [res.U]
     return RotationResult(ψ .* U, res, functional, representation)
 end
+
+
+# the Q factor of a Gaussian random matrix is a random unitary (orthogonal for real T)
+random_unitary(rng, T, N) = Matrix(qr(randn(rng, T, N, N)).Q)
