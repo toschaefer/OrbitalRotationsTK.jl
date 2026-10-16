@@ -32,5 +32,6 @@ res.ψ    # the localized orbitals
   example, a water molecule.
 - [Functionals and representations](@ref) shows which combinations are available and how
   their cost and memory scale with the system size.
+- The [Developer guide](@ref) explains the code design and how to extend it.
 - The [Code reference](@ref) lists the public API and, for developers, the documented
   internals.

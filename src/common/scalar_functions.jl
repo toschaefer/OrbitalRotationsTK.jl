@@ -2,6 +2,10 @@
     derivative(h, x)
 
 The derivative ``h'(x)`` of the scalar function `h`.
+
+Extension point for scalar functions: a new scalar function is a callable struct, `h(x)`,
+with methods of this function and of [`taylor_degree`](@ref). It is applied by broadcasting
+and therefore must be usable inside GPU kernels (see [`CustomFunction`](@ref)).
 """
 function derivative end
 
@@ -11,6 +15,8 @@ function derivative end
 
 The polynomial degree of `h` or an effective degree that approximates `h` well.
 This is needed for line search algorithms of optimizers.
+
+Extension point for scalar functions (see [`derivative`](@ref) for adding one).
 """
 function taylor_degree end
 

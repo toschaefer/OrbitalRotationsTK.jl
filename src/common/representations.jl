@@ -49,6 +49,12 @@ struct RealSpace end
 Precompute and preallocate what the `functional` needs for the given `representation`, for
 the orbitals `ψ` of `basis` (one matrix per k-point). Runs once, before the optimization;
 the result is passed to [`gradient`](@ref) in every step.
+
+Extension point for families of functionals and representations: each supported
+combination is a method that dispatches on the abstract type of the family and on the
+representation, and returns a cache struct (e.g. [`JointDiagOrbitalSubspaceCache`](@ref))
+with a method of [`gradient`](@ref). It allocates every buffer that `gradient` needs. A new
+combination adds its cost and memory to [Functionals and representations](@ref).
 """
 function prepare_gradient end
 
@@ -64,6 +70,10 @@ Loss `L` and Euclidean gradient `Γ` at the unitaries `U`, using `prep` from
 ```
 `L` is only computed if `calc_loss` is true, and is `NaN` otherwise. `Γ` may be a buffer
 that the next call overwrites. Called by the optimizer in every step.
+
+Extension point, implemented together with [`prepare_gradient`](@ref): each combination of
+family and representation adds a method for the type of its cache, which works in the
+buffers of the cache.
 """
 function gradient end
 
@@ -71,8 +81,10 @@ function gradient end
 """
     maximize(functional)
 
-Whether the loss of `functional` is maximized (`true`) or minimized (`false`). Each family
-of functionals implements it.
+Whether the loss of `functional` is maximized (`true`) or minimized (`false`).
+
+Extension point for families of functionals: a new family adds a method for its abstract
+type.
 """
 function maximize end
 
@@ -82,7 +94,9 @@ function maximize end
 
 The polynomial degree of the loss of `functional` in the entries of the unitary, or an
 effective degree for a non-polynomial loss (see [`taylor_degree`](@ref)). The line search
-of the optimizer uses it to choose its step sizes. Each family of functionals implements
-it.
+of the optimizer uses it to choose its step sizes.
+
+Extension point for families of functionals: a new family adds a method for its abstract
+type, usually derived from the [`taylor_degree`](@ref) of its scalar function.
 """
 function max_taylor_degree end

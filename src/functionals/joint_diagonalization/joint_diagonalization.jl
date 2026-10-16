@@ -19,10 +19,11 @@ case of a convex ``h`` (e.g. `Monomial(2)`): then the maximum is reached where a
 ``\sigma_F`` are as diagonal as possible in the rotated orbitals, i.e. where ``U`` jointly
 diagonalizes them. For a non-convex ``h`` this interpretation no longer holds.
 
-A subtype has the fields `h` (e.g. a [`Monomial`](@ref)) and `w` (one number for all ``F``,
-or a vector with one weight per ``F``), and implements [`one_body_operators`](@ref) for
-[`FourierSpace`](@ref) and [`RealSpace`](@ref). [`OrbitalSubspace`](@ref) is built from the
-`FourierSpace` operators.
+A new functional of this family is a configuration struct, a subtype, with the fields `h`
+(e.g. a [`Monomial`](@ref)) and `w` (one number for all ``F``, or a vector with one weight
+per ``F``), and methods of [`one_body_operators`](@ref). Its docstring states the units of
+the loss, which set the scale of `tol` in [`rotate`](@ref). The family supplies the
+numerics: [`prepare_gradient`](@ref) and [`gradient`](@ref) for each representation.
 
 See [Functionals and representations](@ref) for the available combinations and their cost.
 """
@@ -36,6 +37,11 @@ abstract type JointDiagonalizationFunctional end
 The one-body operators ``\sigma_F`` that define the `functional`: on the real-space grid,
 or as an ``N_G \times N_F`` matrix of Fourier coefficients ``\sigma_F(\bm G)`` at the
 vectors `Gs` (reduced coordinates).
+
+Extension point for functionals of the [`JointDiagonalizationFunctional`](@ref) family: a
+new functional adds a method for each form of the operators that its representations need,
+`FourierSpace` for [`OrbitalSubspace`](@ref) and [`FourierSpace`](@ref), `RealSpace` for
+[`RealSpace`](@ref).
 """
 function one_body_operators end
 

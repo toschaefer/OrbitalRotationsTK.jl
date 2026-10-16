@@ -2,7 +2,7 @@
 
 You are an expert Julia developer. Never write "Pythonic" Julia. 
 Read the `README.md` and linked documentation before contributing.
-The code design is described in `CONTRIBUTING.md`.
+The code design is described in `docs/src/developer.md`.
 
 ## Core Philosophy
 * **Performance First:** High-performance is the absolute top priority—even slightly edging out readability. Fast, zero-allocation, and type-stable code comes before all else.
@@ -11,9 +11,11 @@ The code design is described in `CONTRIBUTING.md`.
   * Keep functions short and trackable.
   * Write docstrings for the public API and for the internals a developer needs to extend or understand the code. `docs/src/code_reference.md` collects them automatically via `@autodocs` into "Public API" and "Developer Reference (Internals)", so never list functions there by hand.
     * **Public API:** every exported name needs a docstring (`docs/make.jl` builds with `checkdocs = :exports` and fails otherwise).
-    * **Internals:** extension points (e.g. `_eigenproblems`, `_solve`, `_compress_coulomb_vertex`) and non-trivial internal types (e.g. `LevelShiftedOperator`) get a docstring too. Small helpers get at most a comment.
+    * **Internals:** extension points (e.g. `prepare_gradient`, `gradient`, `one_body_operators`) and non-trivial internal types (e.g. `JointDiagOrbitalSubspaceCache`) get a docstring too. Small helpers get at most a comment.
     * When one docstring covers several methods (e.g. a convenience form), its argument list must explain every signature.
+    * **Cost:** a new combination of family and representation, or a change of its scaling, updates its cost and memory on `docs/src/functionals_and_representations.md` in the same commit. Format and symbols: see "Computational cost" in `docs/src/developer.md`.
     * Write formulas in LaTeX: ```` ```math ```` blocks for displayed equations and double backticks (``` ``x`` ```) for inline math. Use `@doc raw"""` for docstrings with LaTeX, so backslashes need no escaping.
+  * **Design sync:** a change of the code design (a new or removed noun, verb or extension point, a changed contract, data layout or convention) updates `docs/src/developer.md`, the docstrings of the affected extension points, and every other place that describes it (`CONTRIBUTING.md`, `README.md`, `AGENTS.md`) in the same commit. Refer to code there with `@ref` links, never with copied signatures, so the docs build catches renames.
   * Use inline comments ONLY to explain physics/math reasoning, subtle normalizations, or workarounds. Never restate what the code mechanically does.
 
 ## Device-Agnostic Code (GPU/CPU)
@@ -27,6 +29,7 @@ The exact same code path must run on both CPU and GPU.
 
 ## Style & Conventions
 Follow [Julia Blue Style](https://github.com/invenia/BlueStyle). Line length: ~92 characters.
+Counts that have a symbol in the "Computational cost" table of `docs/src/developer.md` are named after it without the subscript underscore (``N_G`` ↔ `NG`, ``N_k`` ↔ `Nk`); other counts are snake_case.
 
 
 ## Testing & Quality Assurance

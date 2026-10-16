@@ -11,6 +11,7 @@ makedocs(;
         "Home" => "index.md",
         "Tutorial" => "tutorial.md",
         "Functionals and representations" => "functionals_and_representations.md",
+        "Developer guide" => "developer.md",
         "Code reference" => "code_reference.md",
     ],
 )
