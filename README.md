@@ -55,7 +55,8 @@ example and the reference of all functions.
 ## To do
 
 - [x] Implement `rotate` and the `OrbitalSubspace` evaluation for `NPL`
-- [ ] Tests for `gradient` and `rotate`
+- [x] End-to-end test of `rotate`
+- [ ] Tests for `gradient` (e.g. against finite differences)
 - [ ] `FourierSpace` and `RealSpace` representations
 - [ ] More functionals: Foster–Boys, Pipek–Mezey, Edmiston–Ruedenberg, intrinsic bond orbitals
 - [ ] k-points
