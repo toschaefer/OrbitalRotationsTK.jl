@@ -54,9 +54,15 @@ Extension point for families of functionals and representations: each supported
 combination is a method that dispatches on the abstract type of the family and on the
 representation, and returns a cache struct (e.g. [`JointDiagOrbitalSubspaceCache`](@ref))
 with a method of [`gradient`](@ref). It allocates every buffer that `gradient` needs. A new
-combination adds its cost and memory to [Functionals and representations](@ref).
+combination adds its cost and memory to [Functionals and representations](@ref). Any other
+combination throws an `ArgumentError`.
 """
-function prepare_gradient end
+function prepare_gradient(functional, representation, basis, ψ)
+    throw(ArgumentError(
+        "$(nameof(typeof(functional))) is not available in the representation " *
+        "$(nameof(typeof(representation))); see \"Functionals and representations\" in " *
+        "the documentation for the available combinations"))
+end
 
 
 @doc raw"""

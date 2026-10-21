@@ -62,17 +62,19 @@ function rotate(
     callback=nothing,
 )
     # consistency checks
-    length(basis.kpoints) == 1 && iszero(basis.kpoints[1].coordinate) ||
-        throw(ArgumentError("currently Γ-only!"))
+    length(basis.kpoints) == 1 && iszero(only(basis.kpoints).coordinate) ||
+        throw(ArgumentError("rotate supports only the Γ point so far: use a basis with " *
+                            "kgrid=(1, 1, 1) and a spin-unpolarized model"))
     length(ψ) == length(basis.kpoints) || throw(DimensionMismatch(
         "expected orbitals for $(length(basis.kpoints)) k-point(s), got $(length(ψ))"))
     U0 = @something U0 [random_unitary(rng, eltype(ψk), size(ψk, 2)) for ψk in ψ]
-    length(U0) == length(ψ) || throw(DimensionMismatch("expected one U0 per k-point"))
+    length(U0) == length(ψ) || throw(DimensionMismatch(
+        "expected one U0 per k-point ($(length(ψ))), got $(length(U0))"))
     for (ψk, U0k) in zip(ψ, U0)
         N = size(ψk, 2)
-        size(U0k) == (N, N) ||
-            throw(DimensionMismatch("U0 must be $N×$N, got $(size(U0k))"))
-        U0k'U0k ≈ I || throw(ArgumentError("U0 must be unitary"))
+        size(U0k) == (N, N) || throw(DimensionMismatch(
+            "U0 must be $N×$N, one row and column per orbital, got $(size(U0k))"))
+        U0k'U0k ≈ I || throw(ArgumentError("U0 must be unitary, i.e. U0[k]'U0[k] ≈ I"))
     end
 
     # prepare and optimize

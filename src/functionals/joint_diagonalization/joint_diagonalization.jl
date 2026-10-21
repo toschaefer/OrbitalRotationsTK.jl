@@ -131,6 +131,9 @@ function prepare_gradient(
     basis,
     ψ,
 )
+    # the sums over k, k' are not yet restricted to one spin channel and normalized
+    @assert length(basis.kpoints) == 1
+
     # compute ⟨ψ_mk|e^{-iGr}|ψ_nk'⟩
     ρ, Gs = PsiTK.compute_overlap_densities(
         basis,

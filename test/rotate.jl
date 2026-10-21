@@ -73,3 +73,22 @@ end
     res2 = rotate(basis, ψ, NPL(); rng=Xoshiro(2), tol=1e-9)
     @test res2.optimizer.loss ≈ res.optimizer.loss rtol=1e-12
 end
+
+
+@testitem "rotate rejects invalid input" tags=[:rotate] setup=[TestSystems] begin
+    using DFTK
+    using LinearAlgebra
+
+    basis = TestSystems.water.basis
+    ψ = TestSystems.water_ψ
+    N = size(only(ψ), 2)
+
+    basis_k = PlaneWaveBasis(basis.model; Ecut=5, kgrid=(2, 1, 1))
+    @test_throws ArgumentError rotate(basis_k, ψ, NPL())
+    @test_throws DimensionMismatch rotate(basis, [only(ψ), only(ψ)], NPL())
+    @test_throws DimensionMismatch rotate(basis, ψ, NPL(); U0=[Matrix(I, N, N), I(N)])
+    @test_throws DimensionMismatch rotate(basis, ψ, NPL(); U0=[Matrix(I, N + 1, N + 1)])
+    @test_throws ArgumentError rotate(basis, ψ, NPL(); U0=[2 * Matrix(I, N, N)])
+    @test_throws ArgumentError rotate(basis, ψ, NPL(); representation=FourierSpace())
+    @test_throws ArgumentError rotate(basis, ψ, NPL(); representation=RealSpace())
+end

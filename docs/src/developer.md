@@ -80,6 +80,18 @@ of the file defining them. Every export needs a docstring (`docs/make.jl` builds
 - **Devices:** buffers are allocated with `similar` from the data they belong to, and
   scalar functions are applied by broadcasting, so a scalar function must be usable inside
   GPU kernels (see [`CustomFunction`](@ref)). The code is CPU-only so far.
+- **Errors and assertions:** check a requirement in the routine whose algorithm needs
+  it, as early as the user's choice reaches it (a public function, a constructor, or a
+  validation helper called first). Throw a typed exception whose message says how to fix
+  it: `DimensionMismatch` for inconsistent sizes, `ArgumentError` for any other invalid
+  or unsupported input. Keep all "not supported (yet)" checks of a feature together in
+  that one place. Low-level helpers carry no such policy and only `@assert` the
+  preconditions their callers guarantee; a failing assertion is a bug in
+  OrbitalRotationsTK, never a user error, and code must stay correct if asserts are not
+  evaluated. E.g. [`rotate`](@ref) rejects bases beyond the Γ point, which
+  [`prepare_gradient`](@ref) of [`JointDiagonalizationFunctional`](@ref) then only
+  asserts, and the fallback of [`prepare_gradient`](@ref) rejects a combination of
+  functional and representation that has no method.
 
 ## Extension points
 
